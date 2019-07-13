@@ -4,7 +4,7 @@
 test_url="https://rewildingeurope.com/what-is-rewilding/"
 root_url="https://rewildingeurope.com/"
 dest_dir='RewildingEurope'
-uris=[test_url]
+uris=[]
 
 
 import requests
@@ -37,14 +37,29 @@ def insert_root_url(url):
 
 
 #============================================================
+# On cherche toutes les uris à télécharger
+#============================================================
+
+html = requests.get(root_url).content
+soup = BeautifulSoup(html, 'html.parser')
+
+for tag in soup.ul.find_all('a'):
+    href = tag['href']
+    if not (re.match('.*/blog/', href) or re.match('.*/news/', href)):
+        uris.append(href)
+
+#============================================================
 # Début de la boucle
 #============================================================
 
 if not os.path.isdir(dest_dir):
     os.mkdir(dest_dir)
 
+
 page_counter = 1
 n_pages = len(uris)
+
+# Début de la grosse boucle
 
 for url in uris:
     basename = dest_dir + '/page' + '{:0>3}'.format(page_counter)
