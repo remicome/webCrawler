@@ -1,0 +1,8 @@
+Chaque page statique:
+    - Un pdf de tout de la façon dont ça apparaît (avec URL/date capture)
+    - Un fichier .txt du texte (tout sauf bannières)
+    - Toutes les images de l'article
+
+Le nom de chaque fichier a un code qui se rapporte à la page
+    
+    - Une base de donnée avec: identifiant, url, date de capture (fichier CSV)
