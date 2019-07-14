@@ -88,9 +88,7 @@ for url in uris:
     
     #==================================================
     # Titre de la page (ici un titre réduit est dans main.h1 ; à défaut dans la balise title)
-    if not (main.h1 is None):
-        this_page_title = main.h1.get_text()
-    elif not (soup.title is None):
+    if not (soup.title is None):
         this_page_title = soup.title.get_text()
     else:
         this_page_title = ''
@@ -141,7 +139,7 @@ for url in uris:
 #  le charger facilement plus tard)
 print('Écriture du fichier json')
 with open(project_name + '.json', 'w') as f:
-    f.write(json.dumps(pages, indent=4))
+    json.dump(pages, f)
 
 # fin de l'écriture du fichier json
 #============================================================
