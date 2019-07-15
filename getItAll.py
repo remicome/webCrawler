@@ -1,4 +1,4 @@
-#/usr/bin/python
+#!/usr/bin/python3
 
 # Variables spécifiques au projet
 root_url="https://rewildingeurope.com"
@@ -42,7 +42,7 @@ print('Extraction des urls à télécharger')
 html = requests.get(root_url).content
 soup = BeautifulSoup(html, 'html.parser')
 
-uris=[]
+uris=[root_url]
 for tag in soup.ul.find_all('a'):
     href = tag['href']
     if not (re.match('.*/blog/', href) or re.match('.*/news/', href) or re.match('.*europeansafaricompany.*', href)):
@@ -214,7 +214,7 @@ for p in pages:
 page_counter = 1
 for p in pages:
     print('Génération du fichier pdf : page %d/%d' % (page_counter, n_pages))
-    pdfkit.from_url(p['url'], p['basepath'] + '.pdf', {'quiet': ''})
+    pdfkit.from_url(p['url'], p['basepath'] + '.pdf', {'quiet': '', 'disable-javascript': ''})
 
     page_counter += 1
 #
