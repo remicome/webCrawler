@@ -1,17 +1,19 @@
 #!/usr/bin/python3
 
-# Variables spécifiques au projet
-root_url="https://rewildingeurope.com"
-project_name='RewildingEurope'
-
-
 import os, re, csv, time, json
 
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse, urljoin
 
 import pdfkit
 
+
+# Variables spécifiques au projet
+root_url="https://rewildingeurope.com" # L'url complète du projet (avec le protocole au début)
+
+root_url_netloc = urlparse(root_url).netloc
+project_name = root_url_netloc
 
 #============================================================
 # Quelques méthodes utiles
@@ -26,12 +28,46 @@ def is_for_mobile(tag):
     return False
 
 # Ajoute l'URL de base pour obtenir une adresse complète
-#TODO: ça ne marche pas si des chemins relatifs sont donnés
+#TODO: ça ne marche pas si des chemins relatifs de type ../ sont donnés
+#TODO replace given relative path with full path, given the current path
 def insert_root_url(url):
     if re.match('^/', url):
         return root_url + url
-    else:
+    elif re.match('\(\(http\)|\(https\)://\)?' . root_url, url):
         return url
+    else:
+        raise RelativeUrl
+
+
+# url_should_be_excluded(url):
+#   'url' est une url *absolue*
+#   Vérifie si :
+#       - url pointe vers le même site (url relative ou même chemin de base)
+#       - url n'est pas un lien vers le blog ou les actualités (à traiter à part)
+#       - url ne pointe pas vers un fichier
+def url_should_be_excluded(url):
+    netloc = urlparse(url).netloc
+    scheme = urlparse(url).scheme
+    return ((scheme != 'http') and (scheme != 'https')) \
+            or ((netloc != '') and (netloc != root_url_netloc)) \
+            or re.match('.*(/|#)blog.*', url) \
+            or re.match('.*(/|#)tag.*', url) \
+            or re.match('.*(/|#)news.*', url) \
+            or re.match('.*\.(pdf|jpg|svg|png|gif)$', url) \
+            or re.match('.*#[a-zA-Z0-9]*',url)
+
+# append_new_uris(string url, BeautifulSoup soup, uris):
+#   soup est l'objet Beautiful soup créé à partir du contenu de la page à l'adresse url. uris est un tableau d'url absolues déjà connues.
+#   La fonction ajoute à 'uris' toutes les nouvelles uris trouvée dans 'soup' qui ne sont pas exclues par la fonction 'url_should_be_excluded()'
+def append_new_uris(url, soup, uris):
+    for tag in soup.find_all('a'):
+        try:
+            href = tag['href']
+            absolute_url = urljoin(url, href)
+            if not (url_should_be_excluded(absolute_url) or absolute_url in uris):
+                uris.append(absolute_url)
+        except KeyError:
+            pass
 
 
 #============================================================
@@ -39,14 +75,36 @@ def insert_root_url(url):
 #============================================================
 print('Extraction des urls à télécharger')
 
-html = requests.get(root_url).content
-soup = BeautifulSoup(html, 'html.parser')
-
 uris=[root_url]
-for tag in soup.ul.find_all('a'):
-    href = tag['href']
-    if not (re.match('.*/blog/', href) or re.match('.*/news/', href) or re.match('.*europeansafaricompany.*', href)):
-        uris.append(href)
+url_index = 0
+
+url = uris[url_index]
+html = requests.get(url).content
+soup = BeautifulSoup(html, 'html.parser')
+append_new_uris(url, soup, uris)
+url_index += 1
+
+while url_index < len(uris):
+    url = uris[url_index]
+    print('Url %d/%d: %s' % (url_index, len(uris), url))
+
+    try:
+        r = requests.get(url)
+        if not r: #Url is invalid
+            raise Exception("Url invalide")
+        elif r.url != url: #We have been redirected
+            if r.url in uris:
+                raise Exception("Redirection vers une url déjà explorée")
+            else:
+                uris[url_index] = r.url
+                url = r.url
+
+        html = r.content
+        soup = BeautifulSoup(html, 'html.parser')
+        append_new_uris(url, soup, uris)
+        url_index += 1
+    except Exception:
+        del uris[url_index]
 
 #============================================================
 # Début de la boucle
