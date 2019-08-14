@@ -57,9 +57,9 @@ class MyCrawler:
 
     def save_csv(self):
         logging.info('Écriture du fichier csv')
-        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte']]
+        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte', 'Type']]
         for page_id, page in enumerate(self):
-            rows.append([ page_id, page.title, page.url, page.access_date, len(page.images), len(page.text) ])
+            rows.append([ '%s/page%03d.txt' % (self.data_dir, page_id), page.title, page.url, page.access_date, len(page.images), len(page.text), 'site' ])
 
         #TODO: pour compter la longueur du texte, faut-il enlever les espaces et \n ?
         with open('%s/%s.csv' % (self.project_name, self.project_name), 'w', newline='') as f:
