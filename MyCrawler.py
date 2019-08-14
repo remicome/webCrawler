@@ -11,8 +11,11 @@ import requests
 from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, urlsplit, urlunsplit
+from selenium import webdriver
 
 import logging
+
+from save_screenshot import save_screenshot
 
 
 class MyCrawler:
@@ -76,6 +79,12 @@ class MyCrawler:
 
                 with open('%s/page%03d_img%03d.%s' % (self.data_dir, page_id, img_id, img_extension), 'wb') as f:
                     f.write(requests.get(img_url).content)
+
+    def take_screenshots(self):
+        driver = webdriver.Chrome()
+        for page_id, page in enumerate(self):
+            logging.info('Capture d\'écran de la page %d/%d' % (page_id + 1, len(self.pages)))
+            page.screenshot(driver, '%s/page%03d_screenshot.jpg' % (self.data_dir, page_id))
 
     def _ensure_project_dir(self):
         if not os.path.isdir(self.project_name):
@@ -163,7 +172,10 @@ class MyPage:
 
             self.text = ''
             self._find_text()
-
+	
+    def screenshot(self, driver, file):
+        driver.get(self.url)
+        save_screenshot(driver, file)
 
     # _find_links(self):
     #   remplis self.images avec tous les liens trouvés dans self.soup. Les liens sont des urls absolues.
