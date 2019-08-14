@@ -174,7 +174,7 @@ for url in uris:
     for tag in main.find_all(True):
         # 1ere possibilité: l'image est définie par CSS comme image de fond
         if tag.has_attr('style'):
-            s = re.search('background-image:url\(\'(.*\.jpg)\'', tag['style'])
+            s = re.search('background-image:url\(\'(.*\.[a-zA-Z0-9]+)\'', tag['style'])
             if s:
                 this_page_images.append( insert_root_url(s.group(1)) )
         # 2e possibilité: balise <img>
