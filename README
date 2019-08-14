@@ -1,0 +1,25 @@
+************************************************************
+*
+* webCrawler:
+*
+*  Un script python qui parcourt un site à partir d'une url
+*   racine et télécharge:
+*       - tous les textes présents sur la page,
+*       - toutes les images,
+*       - enregistre une capture d'écran de la page
+*       - crée un corpus (fichier .csv exploitable avec IraMuTeQ)
+*
+************************************************************
+
+Le programme est fait pour Salomé ; le but est de générer un 
+corpus (texte, image) à partir d'une url.
+
+Fichiers:
+    - MyCrawler.py: définit les classes :
+            - MyCrawler: la partie principale du programme, qui parcourt
+              le site à la recherche de nouvelles urls,
+            - MyPage: contient toutes les informations qu'on veut retenir
+              sur une page (texte, images liées, liens)
+    - crawl.py: petit script qui instancie MyCrawler et lance le processus.
+
+
