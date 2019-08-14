@@ -16,11 +16,19 @@ import logging
 
 
 class MyCrawler:
-    def __init__(self, root_url):
-        self.root_url = urlunsplit(urlsplit(root_url)) #Sanitize the root url
+    def __init__(self, root_url, project_name = None):
+        self.root_url = root_url
         self.root_url_netloc = urlparse(self.root_url).netloc
-        self.pages = []
-        self.urls = [root_url]  #Urls collectées
+        self.pages = []                             # Pages parsées
+        self.urls = [root_url]                      # Urls collectées
+        if project_name:                                # Nom du répertoire du projet
+            self.project_name = project_name
+        else:
+            self.project_name = self.root_url_netloc   
+        self.data_dir = '%s/data' % self.project_name                 # Nom du répertoire des données
+
+    def __iter__(self):
+        return self.pages.__iter__()
 
     # crawl(): remplis self.pages avec des uris plus basses que root_url
     def crawl(self):
@@ -28,6 +36,56 @@ class MyCrawler:
         url_index = 0
         while url_index < len(self.urls):
             url_index = self._append_next_page(url_index)
+
+
+    def save_text(self):
+        logging.info('Écriture des fichiers textes')
+        self._ensure_project_dir()
+        gather_texts = ''
+
+        for page_id, page in enumerate(self):
+            gather_texts += ('**** *id_%03d\n%s\n\n' % (page_id, page.text))
+            with open('%s/page%03d.txt' % (self.data_dir, page_id), 'w') as f:
+                f.write(page.text)
+        
+        with open('%s/%s.txt' % (self.project_name, self.project_name), 'w') as f:
+            f.write(gather_texts)
+
+
+    def save_csv(self):
+        logging.info('Écriture du fichier csv')
+        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte']]
+        for page_id, page in enumerate(self):
+            rows.append([ page_id, page.title, page.url, page.access_date, len(page.images), len(page.text) ])
+
+        #TODO: pour compter la longueur du texte, faut-il enlever les espaces et \n ?
+        with open('%s/%s.csv' % (self.project_name, self.project_name), 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+
+    def download_images(self):
+        for page_id, page in enumerate(self):
+            for img_id, img_url in enumerate(page.images):
+                logging.info('Téléchargement des images : page %d/%d : image %d/%d' % (page_id, len(self.pages), img_id, len(page.images)))
+                
+                s = re.search('.*\.([a-zA-Z0-9]+)$', img_url)
+                if s:
+                    img_extension = s.group(1)
+                else:
+                    img_extension = ''
+
+                with open('%s/page%03d_img%03d.%s' % (self.data_dir, page_id, img_id, img_extension), 'wb') as f:
+                    f.write(requests.get(img_url).content)
+
+    def _ensure_project_dir(self):
+        if not os.path.isdir(self.project_name):
+            logging.debug('Le répertoire %s n\'existe pas: création' % self.project_name)
+            os.mkdir(self.project_name)
+
+        data_path = '%s/%s' % (self.project_name, self.data_dir)
+        if not os.path.isdir(self.data_dir):
+            logging.debug('Le répertoire %s n\'existe pas: création' % self.data_dir)
+            os.mkdir(self.data_dir)
 
 
     # append_next_page(self, i):
@@ -75,11 +133,10 @@ class MyCrawler:
                 or re.match('.*#[a-zA-Z0-9]*',url)
 
     # _include_url(self, url):
-    #   Retourne True si l'url doit être ajoutée à self.urls (i.e. elle n'y est pas déjà et elle n'est pas dans la blacklist)
+    #   Retourne True si l'url doit être ajoutée à self.urls (i.e. c'est un enfant de root_url, elle n'y est pas déjà et elle n'est pas dans la blacklist)
     #   Arguments: url est une url absolue
     def _include_url(self,url):
-        return not ((url in self.urls) or self._blacklist_url(url))
-
+        return (self.root_url in url) and not ((url in self.urls) or self._blacklist_url(url))
 
 class MyPage:
     def __init__(self, url):
