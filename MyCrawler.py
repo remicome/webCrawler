@@ -66,7 +66,7 @@ class MyCrawler:
     def download_images(self):
         for page_id, page in enumerate(self):
             for img_id, img_url in enumerate(page.images):
-                logging.info('Téléchargement des images : page %d/%d : image %d/%d' % (page_id, len(self.pages), img_id, len(page.images)))
+                logging.info('Téléchargement des images : page %d/%d : image %d/%d' % (page_id + 1, len(self.pages), img_id + 1, len(page.images)))
                 
                 s = re.search('.*\.([a-zA-Z0-9]+)$', img_url)
                 if s:
@@ -94,7 +94,7 @@ class MyCrawler:
     #   Arguments: 'i' est l'indice de l'url à traiter dans self.urls
     #   Retourne: l'indice de la prochaine url à traiter dans self.urls ('i' ou 'i+1', selon qu'on est tombé sur une url valide ou pas)
     def _append_next_page(self, i):
-        logging.info('Page %d/%d trouvées : %s' % (i, len(self.urls), self.urls[i]))
+        logging.info('Page %d/%d trouvées : %s' % (i+1, len(self.urls), self.urls[i]))
         try:
             page = MyPage( self.urls[i] )
         except RequestException as err: #TODO: MyPage doit lancer une RequestException en cas d'erreur ou de redirection
