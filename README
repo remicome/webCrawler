@@ -14,6 +14,9 @@
 Le programme est fait pour Salomé ; le but est de générer un 
 corpus (texte, image) à partir d'une url.
 
+Dépendance:
+    - geckodriver (pour faire des captures d'écran en utilisant firefox)
+
 Fichiers:
     - MyCrawler.py: définit les classes :
             - MyCrawler: la partie principale du programme, qui parcourt

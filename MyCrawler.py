@@ -11,10 +11,12 @@ import requests
 from requests.exceptions import RequestException
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, urlsplit, urlunsplit
-from selenium import webdriver
 
 import logging
 
+# Captures d'écran : pris depuis
+# https://gist.github.com/fabtho/13e4a2e7cfbfde671b8fa81bbe9359fb
+from selenium import webdriver
 from save_screenshot import save_screenshot
 
 
@@ -57,6 +59,7 @@ class MyCrawler:
 
     def save_csv(self):
         logging.info('Écriture du fichier csv')
+        self._ensure_project_dir()
         rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte', 'Type']]
         for page_id, page in enumerate(self):
             rows.append([ '%s/page%03d.txt' % (self.data_dir, page_id), page.title, page.url, page.access_date, len(page.images), len(page.text), 'site' ])
@@ -67,6 +70,7 @@ class MyCrawler:
             writer.writerows(rows)
 
     def download_images(self):
+        self._ensure_project_dir()
         for page_id, page in enumerate(self):
             for img_id, img_url in enumerate(page.images):
                 logging.info('Téléchargement des images : page %d/%d : image %d/%d' % (page_id + 1, len(self.pages), img_id + 1, len(page.images)))
@@ -81,10 +85,11 @@ class MyCrawler:
                     f.write(requests.get(img_url).content)
 
     def take_screenshots(self):
-        driver = webdriver.Chrome()
-        for page_id, page in enumerate(self):
-            logging.info('Capture d\'écran de la page %d/%d' % (page_id + 1, len(self.pages)))
-            page.screenshot(driver, '%s/page%03d_screenshot.jpg' % (self.data_dir, page_id))
+        self._ensure_project_dir()
+        with webdriver.Firefox() as driver:
+            for page_id, page in enumerate(self):
+                logging.info('Capture d\'écran de la page %d/%d' % (page_id + 1, len(self.pages)))
+                page.screenshot(driver, '%s/page%03d_screenshot.png' % (self.data_dir, page_id))
 
     def _ensure_project_dir(self):
         if not os.path.isdir(self.project_name):
