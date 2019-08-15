@@ -1,6 +1,6 @@
 #============================================================
 #
-# MyCrawler.py : définit les classes MyCrawler et MyPage
+# MyCrawler.py : définit les classes MyCrawler et Page
 #
 #
 #============================================================
@@ -20,7 +20,7 @@ from selenium import webdriver
 from save_screenshot import save_screenshot
 
 
-class MyCrawler:
+class Crawler:
     def __init__(self, root_url, project_name = None):
         self.root_url = root_url
         self.root_url_netloc = urlparse(self.root_url).netloc
@@ -60,9 +60,9 @@ class MyCrawler:
     def save_csv(self):
         logging.info('Écriture du fichier csv')
         self._ensure_project_dir()
-        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte', 'Type']]
+        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte', 'Nombre de mots', 'Type']]
         for page_id, page in enumerate(self):
-            rows.append([ '%s/page%03d.txt' % (self.data_dir, page_id), page.title, page.url, page.access_date, len(page.images), len(page.text), 'site' ])
+            rows.append([ '%s/page%03d.txt' % (self.data_dir, page_id), page.title, page.url, page.access_date, len(page.images), page.text.count_char(), page.text.count_words(), 'site' ])
 
         #TODO: pour compter la longueur du texte, faut-il enlever les espaces et \n ?
         with open('%s/%s.csv' % (self.project_name, self.project_name), 'w', newline='') as f:
@@ -110,15 +110,15 @@ class MyCrawler:
     def _append_next_page(self, i):
         logging.info('Page %d/%d trouvées : %s' % (i+1, len(self.urls), self.urls[i]))
         try:
-            page = MyPage( self.urls[i] )
-        except RequestException as err: #TODO: MyPage doit lancer une RequestException en cas d'erreur ou de redirection
+            page = Page( self.urls[i] )
+        except RequestException as err: #TODO: Page doit lancer une RequestException en cas d'erreur ou de redirection
             if (not err.response) or (err.response.url in self.urls):
                 logging.debug('La page est non-disponible ou nous redirige vers une url déjà dans la liste')
                 del self.urls[i]
                 return i
             else:
                 logging.debug('Redirection: on remplace l\'url trouvée par son arrivée')
-                page = MyPage(err.response.url)
+                page = Page(err.response.url)
                 self.urls[i] = err.response.url
 
         self.pages.append(page)
@@ -152,7 +152,7 @@ class MyCrawler:
     def _include_url(self,url):
         return (self.root_url in url) and not ((url in self.urls) or self._blacklist_url(url))
 
-class MyPage:
+class Page:
     def __init__(self, url):
         self.url = url
 
@@ -175,7 +175,7 @@ class MyPage:
             self.images = []
             self._find_images()
 
-            self.text = ''
+            self.text = Text('')
             self._find_text()
 	
     def screenshot(self, driver, file):
@@ -212,9 +212,15 @@ class MyPage:
     #   remplis self.text par le texte trouvé dans les balises textes de soup.main
     def _find_text(self):
         texts = []
-        for tag in self.soup.main.find_all(["h1","h2","h3","h4","h5","h6","p"]):
+        for tag in self.soup.main.find_all(["h1","h2","h3","h4","h5","h6","p", "li"]):
            texts.append(tag.get_text())
-        self.text = '\n'.join(texts)
+        self.text = Text('\n'.join(texts))
 
 
+class Text(str):
+    def count_char(self):
+        return len(re.findall(r'\w', self))
+
+    def count_words(self):
+        return len(re.findall(r'\w+', self))
 
