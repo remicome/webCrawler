@@ -1,3 +1,4 @@
+# coding: utf-8
 #============================================================
 #
 # MyCrawler.py : définit les classes MyCrawler et Page

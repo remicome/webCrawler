@@ -1,3 +1,4 @@
+# coding: utf-8
 # From https://gist.github.com/fabtho/13e4a2e7cfbfde671b8fa81bbe9359fb
 
 from selenium import webdriver
