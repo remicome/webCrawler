@@ -162,7 +162,9 @@ class Page:
             raise RequestException(r)
         else:
             self.html = r.content
-            self.soup = BeautifulSoup(self.html, 'html.parser')
+            #NB: un choix différent de parser donne un texte différent renvoyé par la fonction self._find_text() (les parser 'html.parser' et 'html5lib' ne trouvent pas tous les textes)
+            self.soup = BeautifulSoup(self.html, 'lxml')
+
             if not (self.soup.title is None):
                 self.title = self.soup.title.get_text()
             else:
@@ -210,11 +212,30 @@ class Page:
 
     # _find_text(self):
     #   remplis self.text par le texte trouvé dans les balises textes de soup.main
+    #
+    #   src: https://matix.io/extract-text-from-webpage-using-beautifulsoup-and-python/
     def _find_text(self):
-        texts = []
-        for tag in self.soup.main.find_all(["h1","h2","h3","h4","h5","h6","p", "li"]):
-           texts.append(tag.get_text())
-        self.text = Text('\n'.join(texts))
+        blacklist = [
+            '[document]',
+            'noscript',
+            'header',
+            'html',
+            'meta',
+            'head', 
+            'input',
+            'script',
+            'style',
+            # there may be more elements you don't want, such as "style", etc.
+        ]
+
+        self.text = ''
+        texts = self.soup.main.find_all(string=True)
+        for t in texts:
+            if not (t.parent.name in blacklist):
+                # Les lignes suivantes enlèvent les espaces en trop et les textes vides
+                r = re.search('\s*(.*\S)\s*', str(t))
+                if r:
+                    self.text += '{}\n'.format(r.group(1))
 
 
 class Text(str):
