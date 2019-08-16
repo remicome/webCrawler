@@ -229,14 +229,15 @@ class Page:
             # there may be more elements you don't want, such as "style", etc.
         ]
 
-        self.text = ''
+        text = ''
         texts = self.soup.main.find_all(string=True)
         for t in texts:
             if not (t.parent.name in blacklist):
                 # Les lignes suivantes enlèvent les espaces en trop et les textes vides
                 r = re.search('\s*(.*\S)\s*', str(t))
                 if r:
-                    self.text += '{}\n'.format(r.group(1))
+                    text += '{}\n'.format(r.group(1))
+        self.text = Text(text)
 
 
 class Text(str):
