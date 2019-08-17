@@ -68,7 +68,8 @@ class Crawler:
     # Utilise pickle pour sauver l'objet de type crawler
     def dump(self, path = None):
         if not path:
-            path = '%s/%s.dat' % (self.project_name, self.project_name)
+            path = '%s/crawler.dat' % self.project_name
+            self._ensure_project_dir()
         with open(path, 'wb') as f:
             pickle.dump(self, f)
 
@@ -141,7 +142,7 @@ class Crawler:
         self._ensure_project_dir()
         rows = [['id', 'titre', 'url', 'date_telechargement', 'nb_images', 'nb_signes', 'nb_mots', 'type']]
         for page_id, page in enumerate(self):
-            rows.append([ page_id, page.title, page.url, page.access_date, len(page.images), page.text.count_char(), page.text.count_words(), 'site' ])
+            rows.append([ 'page%03d' % page_id, page.title, page.url, page.access_date, len(page.images), page.text.count_char(), page.text.count_words(), 'site' ])
 
         #TODO: pour compter la longueur du texte, faut-il enlever les espaces et \n ?
         with open('%s/metadata.csv' % self.data_dir, 'w', newline='', encoding="utf-8") as f:
