@@ -22,7 +22,7 @@ from save_screenshot import save_screenshot
 
 
 class Crawler:
-    def __init__(self, root_url, project_name = None):
+    def __init__(self, root_url, project_name = None, text_blacklist= None):
         self.root_url = root_url
         self.root_url_netloc = urlparse(self.root_url).netloc
         self.pages = []                             # Pages parsées
@@ -32,6 +32,8 @@ class Crawler:
         else:
             self.project_name = self.root_url_netloc   
         self.data_dir = '%s/data' % self.project_name                 # Nom du répertoire des données
+        self._add_text_blacklist = text_blacklist
+        
 
     def __iter__(self):
         return self.pages.__iter__()
@@ -43,6 +45,37 @@ class Crawler:
         while url_index < len(self.urls):
             url_index = self._append_next_page(url_index)
 
+
+    # text_blacklist():
+    #   Teste 'tag' (objet bs4.NavigableString) pour savoir si le texte contenu doit être inclus
+    #   Retourne: True si tag est blacklisté, False sinon.
+    def text_blacklist(self, tag):
+        # Blacklist comments
+        if isinstance(tag, Comment):
+            logging.debug('Texte filtré (commentaire) : %s' % tag)
+            return True
+        # Blacklist style, scripts, etc
+        blacklist_parent_name = [
+            #'[document]',          # Inutile (on regarde seulement le texte dans <main>
+            #'header',
+            #'html',
+            #'meta',
+            #'head', 
+            'noscript',
+            'input',
+            'script',
+            'style',
+        ]
+        if (tag.parent.name in blacklist_parent_name):
+            logging.debug('Texte filtré (parent %s) :\n%s' %(tag.parent.name, str(s)))
+            return True
+        # Teste la blacklist optionnelle fournie à la construction de l'objet
+        if self._add_text_blacklist:
+            return self._add_text_blacklist(tag)
+            
+        return False
+    #
+    # fin de text_blacklist()
 
     def save_text(self):
         logging.info('Écriture des fichiers textes')
@@ -111,15 +144,15 @@ class Crawler:
     def _append_next_page(self, i):
         logging.info('Page %d/%d trouvées : %s' % (i+1, len(self.urls), self.urls[i]))
         try:
-            page = Page( self.urls[i] )
-        except RequestException as err: #TODO: Page doit lancer une RequestException en cas d'erreur ou de redirection
+            page = Page( self.urls[i], text_blacklist=self.text_blacklist )
+        except RequestException as err:
             if (not err.response) or (err.response.url in self.urls):
                 logging.debug('La page est non-disponible ou nous redirige vers une url déjà dans la liste')
                 del self.urls[i]
                 return i
             else:
                 logging.debug('Redirection: on remplace l\'url trouvée par son arrivée')
-                page = Page(err.response.url)
+                page = Page(err.response.url, text_blacklist = self.text_blacklist)
                 self.urls[i] = err.response.url
 
         self.pages.append(page)
@@ -154,7 +187,7 @@ class Crawler:
         return (self.root_url in url) and not ((url in self.urls) or self._blacklist_url(url))
 
 class Page:
-    def __init__(self, url):
+    def __init__(self, url, text_blacklist = None):
         self.url = url
 
         r = requests.get(url)
@@ -179,7 +212,7 @@ class Page:
             self._find_images()
 
             self.text = Text('')
-            self._find_text()
+            self._find_text(text_blacklist)
 	
     def screenshot(self, driver, file):
         driver.get(self.url)
@@ -215,42 +248,11 @@ class Page:
     #   remplis self.text par le texte trouvé dans les balises textes de soup.main
     #
     #   src: https://matix.io/extract-text-from-webpage-using-beautifulsoup-and-python/
-    def _find_text(self):
-        def _blacklist(s):
-            # Blacklist comments
-            if isinstance(s, Comment):
-                logging.debug('Commentaire : %s' % s)
-                return True
-
-            # Blacklist style, scripts, etc
-            blacklist_parent_name = [
-                #'[document]',          # Inutile (on est dans le main)
-                #'header',
-                #'html',
-                #'meta',
-                #'head', 
-                'noscript',
-                'input',
-                'script',
-                'style',
-                # there may be more elements you don't want, such as "style", etc.
-            ]
-            if (s.parent.name in blacklist_parent_name):
-                logging.debug('On filtre le texte suivant, de parent %s:\n%s' %(s.parent.name, str(s)))
-                return True
-
-            #TODO: specific to RewildingEurope: à mettre ailleurs!
-            # Filter all children of 'give-form' (Donation forms)
-            if s.find_parents(class_='give-form'):
-                logging.debug('Texte ignoré (formulaire de donation)')
-                return True
-
-            return False
-
+    def _find_text(self, text_blacklist = None):
         text = ''
         texts = self.soup.main.find_all(string=True)
         for t in texts:
-            if not _blacklist(t):
+            if text_blacklist and (not text_blacklist(t)):
                 # Les lignes suivantes enlèvent les espaces en trop et les textes vides
                 r = re.search('\s*(.*\S)\s*', str(t))
                 if r:
