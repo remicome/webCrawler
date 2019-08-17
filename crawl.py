@@ -12,19 +12,32 @@ def my_text_blacklist(tag):
     if tag.find_parents(class_='give-form'):
         logging.debug('Texte filtré (formulaire de don)')
         return True
+    # Content tabs (cf. https://rewildingeurope.com/rew-project/restoring-the-natural-river-valley-of-dviete/)
+    class_blacklist = [
+            'contentTabs_link',
+            'contentTabs_contentTitle',
+            'altList_title',
+            ]
+    for c in class_blacklist:
+        if tag.parent.has_attr('class') and c in tag.parent['class']:
+            return True
 
-crawler = Crawler('https://rewildingeurope.com/donations/children-hope-for-nature/', 'formTest', text_blacklist = my_text_blacklist)
+    return False
+
+#crawler = Crawler('https://rewildingeurope.com/rew-project/restoring-the-natural-river-valley-of-dviete/', project_name = 'filter', text_blacklist = my_text_blacklist)
+#crawler = Crawler('https://rewildingeurope.com/donations/children-hope-for-nature/', 'formTest', text_blacklist = my_text_blacklist)
 #crawler = Crawler('https://rewildingeurope.com/areas/velebit-mountains/', 'NewTest')
-#crawler = Crawler('http://www.iecl.univ-lorraine.fr/~Remi.Come/fr/', 'Test', text_blacklist = my_text_blacklist)
+crawler = Crawler('http://www.iecl.univ-lorraine.fr/~Remi.Come/fr/', 'Test', text_blacklist = my_text_blacklist)
 
+#crawler = Crawler('https://rewildingeurope.com/', project_name = 'RewildingEurope', text_blacklist = my_text_blacklist)
 crawler.crawl()
 #
 #crawler.save_text()
 
-crawler.dump('test.dat')
-c = Crawler.load('test.dat', my_text_blacklist)
-
-c.save_text()
-#crawler.save_csv()
+#crawler.dump('test.dat')
+#c = Crawler.load('test.dat', my_text_blacklist)
+#
+#crawler.save_text()
+crawler.save_csv()
 #crawler.download_images()
 #crawler.take_screenshots()

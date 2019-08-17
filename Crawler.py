@@ -111,7 +111,7 @@ class Crawler:
             'style',
         ]
         if (tag.parent.name in blacklist_parent_name):
-            logging.debug('Texte filtré (parent %s) :\n%s' %(tag.parent.name, str(s)))
+            logging.debug('Texte filtré (parent %s) :\n%s' %(tag.parent.name, str(tag)))
             return True
         # Teste la blacklist optionnelle fournie à la construction de l'objet
         if self.add_text_blacklist:
@@ -134,17 +134,18 @@ class Crawler:
         with open('%s/%s.txt' % (self.project_name, self.project_name), 'w') as f:
             f.write(gather_texts)
 
-
+    # save_csv():
+    #   Enregistre un fichier csv compatible avec TXM
     def save_csv(self):
         logging.info('Écriture du fichier csv')
         self._ensure_project_dir()
-        rows = [['Id', 'Titre', 'url', 'Date de téléchargement', 'Nombre d\'images', 'Nombre de signes du texte', 'Nombre de mots', 'Type']]
+        rows = [['id', 'titre', 'url', 'date_telechargement', 'nb_images', 'nb_signes', 'nb_mots', 'type']]
         for page_id, page in enumerate(self):
-            rows.append([ '%s/page%03d.txt' % (self.data_dir, page_id), page.title, page.url, page.access_date, len(page.images), page.text.count_char(), page.text.count_words(), 'site' ])
+            rows.append([ page_id, page.title, page.url, page.access_date, len(page.images), page.text.count_char(), page.text.count_words(), 'site' ])
 
         #TODO: pour compter la longueur du texte, faut-il enlever les espaces et \n ?
-        with open('%s/%s.csv' % (self.project_name, self.project_name), 'w', newline='') as f:
-            writer = csv.writer(f)
+        with open('%s/metadata.csv' % self.data_dir, 'w', newline='', encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=',', quotechar='"')
             writer.writerows(rows)
 
     def download_images(self):
