@@ -4,6 +4,7 @@ from Crawler import Crawler
 import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+import pickle
 
 #Blacklist de texte spécifique à Rewilding Europe
 def my_text_blacklist(tag):
@@ -17,8 +18,13 @@ crawler = Crawler('https://rewildingeurope.com/donations/children-hope-for-natur
 #crawler = Crawler('http://www.iecl.univ-lorraine.fr/~Remi.Come/fr/', 'Test', text_blacklist = my_text_blacklist)
 
 crawler.crawl()
+#
+#crawler.save_text()
 
-crawler.save_text()
+crawler.dump('test.dat')
+c = Crawler.load('test.dat', my_text_blacklist)
+
+c.save_text()
 #crawler.save_csv()
 #crawler.download_images()
 #crawler.take_screenshots()

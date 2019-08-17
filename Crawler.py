@@ -15,6 +15,8 @@ from urllib.parse import urlparse, urljoin, urlsplit, urlunsplit
 
 import logging
 
+import pickle
+
 # Captures d'écran : pris depuis
 # https://gist.github.com/fabtho/13e4a2e7cfbfde671b8fa81bbe9359fb
 from selenium import webdriver
@@ -32,11 +34,53 @@ class Crawler:
         else:
             self.project_name = self.root_url_netloc   
         self.data_dir = '%s/data' % self.project_name                 # Nom du répertoire des données
-        self._add_text_blacklist = text_blacklist
+        self.add_text_blacklist = text_blacklist
         
 
     def __iter__(self):
         return self.pages.__iter__()
+
+    # __getstate__():
+    #   Pour pickle: retourne tous les attributs de l'instance *excepté* self.add_text_blacklist (c'est une référence à une fonction qui est définie à l'extérieur de la classe. La sauvegarder conduit à une erreur quand on appelle pickle.load, il faut donc la spécifier manuellement -> cf. self.load(path, text_blacklist)
+    def __getstate__(self):
+        state = {
+                'root_url' : self.root_url,
+                'root_url_netloc' : self.root_url_netloc,
+                'pages' : self.pages,
+                'urls' : self.urls,
+                'project_name' : self.project_name,
+                'data_dir' : self.data_dir,
+                }
+        return state
+
+    # __setstate()__
+    #   Pour pickle.
+    def __setstate__(self, state):
+        self.root_url = state['root_url']
+        self.root_url_netloc = state['root_url_netloc']
+        self.pages = state['pages']
+        self.urls = state['urls']
+        self.project_name = state['project_name']
+        self.data_dir = state['data_dir']
+        self.add_text_blacklist = None
+
+    # dump():
+    # Utilise pickle pour sauver l'objet de type crawler
+    def dump(self, path = None):
+        if not path:
+            path = '%s/%s.dat' % (self.project_name, self.project_name)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    # load():
+    #   Utilise pickle pour charger un objet Crawler. Il faut ajouter manuellement la fonction add_text_blacklist (pickkle stocke seulement la référence à cette fonction ; si on fait pickle.load sans précaution depuis un environnement différent, cette référence ne pointe vers rien et provoque une erreur. Voir __getargs__.
+    @staticmethod
+    def load(path = None, text_blacklist=None):
+        with open(path, 'rb') as f:
+            crawler = pickle.load(f)
+            crawler.add_text_blacklist = text_blacklist
+            return crawler
+        return None
 
     # crawl(): remplis self.pages avec des uris plus basses que root_url
     def crawl(self):
@@ -70,8 +114,8 @@ class Crawler:
             logging.debug('Texte filtré (parent %s) :\n%s' %(tag.parent.name, str(s)))
             return True
         # Teste la blacklist optionnelle fournie à la construction de l'objet
-        if self._add_text_blacklist:
-            return self._add_text_blacklist(tag)
+        if self.add_text_blacklist:
+            return self.add_text_blacklist(tag)
             
         return False
     #
@@ -213,6 +257,33 @@ class Page:
 
             self.text = Text('')
             self._find_text(text_blacklist)
+
+    # __getstate__():
+    #   Appelée par pickle pour sauvegarder l'objet
+    #   Returns: a pickable object
+    def __getstate__(self):
+        state = {
+            'url' : self.url,
+            'html' : self.html,
+            'access_date' : self.access_date,
+            'links' : self.links,
+            'images' : self.images,
+            'text' : self.text,
+            'title' : self.title,
+        }
+        return state
+
+    def __setstate__(self, state):
+        self.url = state['url']
+        self.html = state['html']
+        self.access_date = state['access_date']
+        self.links = state['links']
+        self.images = state['images']
+        self.text = state['text']
+        self.title = state['title']
+
+        self.soup = BeautifulSoup(self.html, 'lxml')
+
 	
     def screenshot(self, driver, file):
         driver.get(self.url)
