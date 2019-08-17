@@ -242,8 +242,8 @@ class Page:
 
 class Text(str):
     def count_char(self):
-        return len(re.findall(r'\w', self))
+        return len(re.findall(r'\S', self))
 
     def count_words(self):
-        return len(re.findall(r'\w+', self))
+        return len(re.findall(r'\S+', self))
 
