@@ -10,7 +10,7 @@ import os, re, csv, time, json
 
 import requests
 from requests.exceptions import RequestException
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from urllib.parse import urlparse, urljoin, urlsplit, urlunsplit
 
 import logging
@@ -216,23 +216,41 @@ class Page:
     #
     #   src: https://matix.io/extract-text-from-webpage-using-beautifulsoup-and-python/
     def _find_text(self):
-        blacklist = [
-            '[document]',
-            'noscript',
-            'header',
-            'html',
-            'meta',
-            'head', 
-            'input',
-            'script',
-            'style',
-            # there may be more elements you don't want, such as "style", etc.
-        ]
+        def _blacklist(s):
+            # Blacklist comments
+            if isinstance(s, Comment):
+                logging.debug('Commentaire : %s' % s)
+                return True
+
+            # Blacklist style, scripts, etc
+            blacklist_parent_name = [
+                #'[document]',          # Inutile (on est dans le main)
+                #'header',
+                #'html',
+                #'meta',
+                #'head', 
+                'noscript',
+                'input',
+                'script',
+                'style',
+                # there may be more elements you don't want, such as "style", etc.
+            ]
+            if (s.parent.name in blacklist_parent_name):
+                logging.debug('On filtre le texte suivant, de parent %s:\n%s' %(s.parent.name, str(s)))
+                return True
+
+            #TODO: specific to RewildingEurope: à mettre ailleurs!
+            # Filter all children of 'give-form' (Donation forms)
+            if s.find_parents(class_='give-form'):
+                logging.debug('Texte ignoré (formulaire de donation)')
+                return True
+
+            return False
 
         text = ''
         texts = self.soup.main.find_all(string=True)
         for t in texts:
-            if not (t.parent.name in blacklist):
+            if not _blacklist(t):
                 # Les lignes suivantes enlèvent les espaces en trop et les textes vides
                 r = re.search('\s*(.*\S)\s*', str(t))
                 if r:
