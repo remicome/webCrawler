@@ -24,11 +24,6 @@ def my_text_blacklist(tag):
 
     return False
 
-#crawler = Crawler('https://rewildingeurope.com/rew-project/restoring-the-natural-river-valley-of-dviete/', project_name = 'filter', text_blacklist = my_text_blacklist)
-#crawler = Crawler('https://rewildingeurope.com/donations/children-hope-for-nature/', 'formTest', text_blacklist = my_text_blacklist)
-#crawler = Crawler('https://rewildingeurope.com/areas/velebit-mountains/', 'NewTest')
-#crawler = Crawler('http://www.iecl.univ-lorraine.fr/~Remi.Come/fr/', 'Test', text_blacklist = my_text_blacklist)
-
 crawler = Crawler('https://rewildingeurope.com/', project_name = 'RewildingEurope', text_blacklist = my_text_blacklist)
 
 crawler.crawl()
